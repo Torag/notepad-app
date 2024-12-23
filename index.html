@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notepad</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link rel="icon" href="https://cdn.iconscout.com/icon/free/png-512/free-notepad-icon-download-in-svg-png-gif-file-formats--note-pencil-education-learning-pack-school-icons-2201003.png?f=webp&w=256" type="image/svg+xml">
+    <style>
+        /* CSS Variables */
+        :root {
+            --primary-color: #007aff;
+            --primary-hover: #005bb5;
+            --toolbar-bg: #f2f2f7;
+            --background-light: #fafafa;
+            --shadow: rgba(0, 0, 0, 0.1);
+            --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            --button-radius: 10px;
+            --input-border: #d1d1d6;
+            --dark-bg: #1c1c1e;
+            --dark-text: #f2f2f7;
+            --dark-toolbar-bg: #2c2c2e;
+            --dark-input-border: #3a3a3c;
+            --dark-shadow: rgba(0, 0, 0, 0.5);
+            --header-bg: #f9f9f9;
+            --header-border: #e0e0e0;
+        }
+
+        /* Global Styles */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-family);
+            background-color: var(--background-light);
+            color: #1c1c1e;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            width: 100vw; /* Ensure body fits the screen width */
+            overflow: hidden; /* Prevent scrolling */
+            margin: 0;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        body.dark-mode {
+            background-color: var(--dark-bg);
+            color: var(--dark-text);
+        }
+
+        /* Notepad Styles */
+        .notepad {
+            width: 95%;
+            max-width: 1200px;
+            height: 90vh;
+            background: #ffffff;
+            border-radius: 15px;
+            box-shadow: 0 8px 20px var(--shadow);
+            display: grid;
+            grid-template-rows: auto 1fr auto;
+            overflow: hidden;
+            transition: transform 0.3s ease, background-color 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .notepad:hover {
+            transform: scale(1.02);
+        }
+
+        body.dark-mode .notepad {
+            background: var(--dark-bg);
+            box-shadow: 0 8px 20px var(--dark-shadow);
+        }
+
+        /* Header Styles */
+        .header {
+            background: var(--header-bg);
+            color: #000000;
+            padding: 0.5rem 1rem;
+            text-align: center;
+            font-size: 1.2rem;
+            font-weight: bold;
+            border-bottom: 1px solid var(--header-border);
+            transition: background-color 0.3s ease, color 0.3s ease;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        body.dark-mode .header {
+            background: var(--dark-toolbar-bg);
+            color: var(--dark-text);
+            border-bottom: 1px solid var(--dark-input-border);
+        }
+
+        /* Toolbar Styles */
+        .toolbar {
+            background: transparent;
+            padding: 0;
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+            border: none;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        body.dark-mode .header,
+        body.dark-mode .toolbar,
+        body.dark-mode .status-bar,
+        body.dark-mode .footer {
+            background: var(--dark-toolbar-bg);
+            color: var(--dark-text);
+        }
+
+        .toolbar-group {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .toolbar .button {
+            flex: none; /* Ensure buttons are in one line */
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.3s ease, transform 0.3s ease;
+        }
+
+        .toolbar .button:hover {
+            transform: translateY(-2px);
+        }
+
+        .toolbar .button + .button {
+            margin-left: 0.5rem;
+        }
+
+        .toolbar .button i {
+            margin-right: 0.5rem;
+        }
+
+        .dark-mode-toggle {
+            cursor: pointer;
+            font-size: 1.2rem;
+            transition: transform 0.3s ease;
+        }
+
+        .dark-mode-toggle:hover {
+            transform: rotate(20deg);
+        }
+
+        /* Search Dialog Styles */
+        .search-dialog {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #ffffff;
+            box-shadow: 0 4px 10px var(--shadow);
+            border-radius: 10px;
+            padding: 1rem;
+            z-index: 1001;
+            flex-direction: column;
+            gap: 1rem;
+            min-width: 300px;
+            transition: transform 0.3s ease, opacity 0.3s ease;
+        }
+
+        .search-dialog.show {
+            display: flex;
+            opacity: 1;
+        }
+
+        .search-dialog.hide {
+            opacity: 0;
+        }
+
+        .search-dialog .search-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: default; /* Change cursor to default */
+        }
+
+        .search-dialog .search-header.dragging {
+            cursor: move; /* Change cursor to move when dragging */
+        }
+
+        .search-dialog .close-btn {
+            background: none;
+            border: none;
+            color: #ff3b30;
+            font-size: 1.2rem;
+            cursor: pointer;
+        }
+
+        .search-row {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            width: 100%;
+        }
+
+        /* Button Styles */
+        .button {
+            background: var(--primary-color);
+            color: #ffffff;
+            padding: 0.5rem 1.5rem;
+            font-size: 0.9rem;
+            font-weight: 500;
+            border: none;
+            border-radius: var(--button-radius);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .button:hover {
+            background: var(--primary-hover);
+            transform: translateY(-2px);
+        }
+
+        .button .dropdown-icon {
+            margin-left: 0.5rem;
+            transition: transform 0.3s ease;
+        }
+
+        .button.active .dropdown-icon {
+            transform: rotate(180deg);
+        }
+
+        /* Input Styles */
+        .input {
+            padding: 0.5rem 1rem;
+            border: 1px solid var(--input-border);
+            border-radius: var(--button-radius);
+            font-size: 0.9rem;
+            outline: none;
+            background-color: #ffffff;
+            flex: 1;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        body.dark-mode .input {
+            background-color: var(--dark-bg);
+            border: 1px solid var(--dark-input-border);
+            color: var(--dark-text);
+        }
+
+        .input:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 3px var(--primary-color);
+        }
+
+        body.dark-mode .input:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 3px var(--primary-color);
+        }
+
+        /* Textarea Styles */
+        .textarea-container {
+            display: grid;
+            grid-template-columns: 1fr;
+            padding: 1rem;
+            overflow: hidden;
+            height: calc(100% - 4rem); /* Adjust height to make it bigger */
+        }
+
+        .textarea {
+            width: 100%;
+            height: 100%;
+            padding: 0; /* Remove padding */
+            border: none;
+            border-radius: 0; /* Adjust border-radius */
+            font-size: 1rem;
+            line-height: 1.5;
+            font-family: var(--font-family);
+            resize: none;
+            outline: none;
+            background: #ffffff;
+            box-shadow: none; /* Remove box-shadow */
+            transition: background-color 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        body.dark-mode .textarea {
+            background: var(--dark-bg);
+            color: var(--dark-text);
+            box-shadow: none; /* Remove box-shadow */
+        }
+
+        /* Status Bar Styles */
+        .status-bar {
+            background: var(--toolbar-bg);
+            padding: 0.75rem 1rem;
+            border-top: 1px solid var(--input-border);
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.875rem;
+            color: #6e6e73;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        .match-info {
+            font-size: 0.9rem;
+            color: #666;
+            padding: 0.3rem 0;
+        }
+
+        /* Footer Styles */
+        .footer {
+            background: var(--toolbar-bg);
+            padding: 0.75rem 1rem;
+            border-top: 1px solid var(--input-border);
+            text-align: center;
+            font-size: 0.875rem;
+            color: #6e6e73;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        /* Media Queries */
+        @media (max-width: 768px) {
+            .toolbar-group {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+
+            .toolbar .button {
+                flex: none;
+                width: 100%;
+                margin-bottom: 0.5rem;
+            }
+
+            .toolbar .button + .button {
+                margin-left: 0;
+            }
+
+            .search-dialog {
+                width: 95%;
+            }
+        }
+
+        /* Highlight Styles */
+        .highlight {
+            background-color: yellow;
+        }
+
+        body.dark-mode .search-dialog {
+            background: var(--dark-bg);
+            color: var(--dark-text);
+            box-shadow: 0 4px 10px var(--dark-shadow);
+        }
+
+        body.dark-mode .search-dialog .input {
+            background-color: var(--dark-bg);
+            border: 1px solid var(--dark-input-border);
+            color: var(--dark-text);
+        }
+
+        body.dark-mode .search-dialog .close-btn {
+            color: var(--dark-text);
+        }
+
+        .search-dialog.dragging {
+            outline: 2px dashed var(--primary-color);
+            transition: outline 0.3s ease;
+        }
+        .search-dialog.dblclick-active {
+            outline: 2px solid var(--primary-color);
+            transition: outline 0.3s ease;
+        }
+        .no-pointer-events {
+            pointer-events: none;
+        }
+        .button-container {
+            position: relative; /* Ensure submenu is positioned relative to this container */
+        }
+        .submenu {
+            display: none; /* Hide submenu by default */
+            position: absolute; /* Position as absolute */
+            background: var(--toolbar-bg); /* Add background */
+            box-shadow: 0 4px 10px var(--shadow); /* Add box-shadow */
+            border-radius: var(--button-radius); /* Add border-radius */
+            padding: 0.5rem; /* Add padding */
+            z-index: 1000; /* Ensure it appears above other elements */
+            top: 100%; /* Position below the button */
+            left: 50%; /* Center horizontally */
+            transform: translateX(-50%) translateY(-10px); /* Center and start with slight upward translation */
+            opacity: 0; /* Start with opacity 0 */
+            transition: opacity 0.3s ease, transform 0.3s ease; /* Add smooth transition */
+            width: 200px; /* Increase width */
+        }
+        .button.active + .submenu {
+            display: flex; /* Show submenu when button is active */
+            flex-direction: column; /* Ensure vertical layout */
+            opacity: 1; /* Fade in */
+            transform: translateX(-50%) translateY(0); /* Center and slide down */
+        }
+        .submenu .button {
+            display: block; /* Change to block */
+            width: 100%; /* Full width */
+            text-align: left; /* Align text to the left */
+            padding: 0.5rem 1rem; /* Adjust padding */
+            margin: 0; /* Remove margin */
+            background: none; /* Remove background */
+            color: inherit; /* Inherit text color */
+            border: none; /* Remove border */
+            box-shadow: none; /* Remove box-shadow */
+            transition: background-color 0.3s ease, color 0.3s ease; /* Add transition */
+            font-size: 0.9rem; /* Ensure same size as main menu text */
+        }
+        .submenu .button:hover {
+            background: var(--primary-hover); /* Add hover background */
+            color: #ffffff; /* Change text color on hover */
+        }
+        body.dark-mode .submenu {
+            background: var(--dark-toolbar-bg);
+            box-shadow: 0 4px 10px var(--dark-shadow);
+        }
+    </style>
+</head>
+<body>
+    <div class="notepad">
+        <div class="header">
+            <span>Notepad</span>
+            <div class="toolbar">
+                <div class="toolbar-group">
+                    <div class="button-container">
+                        <div class="button">
+                            <i class="fas fa-text-height"></i> Case
+                            <i class="fas fa-caret-down dropdown-icon"></i>
+                        </div>
+                        <div class="submenu">
+                            <button class="button" onclick="convertToSentenceCase()">
+                                Sentence case
+                            </button>
+                            <button class="button" onclick="convertToLowerCase()">
+                                lower case
+                            </button>
+                            <button class="button" onclick="convertToUpperCase()">
+                                UPPER CASE
+                            </button>
+                            <button class="button" onclick="convertToCapitalizedCase()">
+                                Capitalized Case
+                            </button>
+                        </div>
+                    </div>
+                    <button class="button" onclick="saveFile()">
+                        <i class="fas fa-save"></i> Save
+                    </button>
+                    <button class="button" onclick="clearText()">
+                        <i class="fas fa-trash"></i> Clear
+                    </button>
+                    <button class="button" onclick="toggleSearch()">
+                        <i class="fas fa-search"></i> Search
+                    </button>
+                    <span class="dark-mode-toggle" onclick="toggleDarkMode()">
+                        <i class="fas fa-moon" id="darkModeIcon"></i>
+                    </span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="textarea-container">
+            <textarea id="editor" class="textarea" placeholder="Start typing..."></textarea>
+        </div>
+        
+        <div class="status-bar">
+            <span id="wordCount">Words: 0</span>
+            <span id="charCount">Characters: 0</span>
+        </div>
+    </div>
+
+    <div id="searchDialog" class="search-dialog">
+        <div class="search-header">
+            <h4>Search & Replace</h4>
+            <button class="close-btn" onclick="toggleSearch()">&times;</button>
+        </div>
+        <div class="search-row">
+            <label>Find:</label>
+            <input type="text" id="searchInput" class="input" placeholder="Search text">
+        </div>
+        <div class="search-row">
+            <label>Replace:</label>
+            <input type="text" id="replaceInput" class="input" placeholder="Replace with">
+        </div>
+        <div class="search-row">
+            <label>
+                <input type="checkbox" id="matchCase"> Match case
+            </label>
+        </div>
+        <div class="search-row">
+            <button class="button" onclick="findPrevious()">
+                <i class="fas fa-chevron-left"></i> Previous
+            </button>
+            <button class="button" onclick="findNext()">
+                <i class="fas fa-chevron-right"></i> Next
+            </button>
+            <button class="button" onclick="replace()">Replace</button>
+            <button class="button" onclick="replaceAll()">Replace All</button>
+        </div>
+        <div id="matchInfo" class="match-info">No results</div>
+    </div>
+
+    <script>
+        const editor = document.getElementById('editor');
+        const searchDialog = document.getElementById('searchDialog');
+        const searchInput = document.getElementById('searchInput');
+        const replaceInput = document.getElementById('replaceInput');
+        const matchCase = document.getElementById('matchCase');
+        const matchInfo = document.getElementById('matchInfo');
+        const wordCount = document.getElementById('wordCount');
+        const charCount = document.getElementById('charCount');
+
+        let lastSearchTerm = '';
+        let searchResults = [];
+        let currentMatchIndex = -1;
+        let isDragging = false;
+        let dragStartX, dragStartY;
+        let holdTimeout;
+
+        // Event Listeners
+        editor.addEventListener('input', updateCounts);
+        searchInput.addEventListener('input', resetSearch);
+        matchCase.addEventListener('change', resetSearch);
+        document.addEventListener('keydown', handleShortcuts);
+
+        searchDialog.querySelector('.search-header').addEventListener('mousedown', (e) => {
+            holdTimeout = setTimeout(() => {
+                isDragging = true;
+                dragStartX = e.clientX - searchDialog.offsetLeft;
+                dragStartY = e.clientY - searchDialog.offsetTop;
+                searchDialog.querySelector('.search-header').classList.add('dragging'); // Add dragging class
+            }, 500); // 500ms hold time
+        });
+
+        searchDialog.querySelector('.search-header').addEventListener('dblclick', (e) => {
+            clearTimeout(holdTimeout); // Clear the hold timeout
+            isDragging = true;
+            dragStartX = e.clientX - searchDialog.offsetLeft;
+            dragStartY = e.clientY - searchDialog.offsetTop;
+            searchDialog.querySelector('.search-header').classList.add('dragging'); // Add dragging class
+            searchDialog.classList.add('dblclick-active'); // Add outline class
+            document.body.classList.add('no-pointer-events');
+        });
+
+        document.addEventListener('mouseup', () => {
+            clearTimeout(holdTimeout);
+            isDragging = false;
+            searchDialog.querySelector('.search-header').classList.remove('dragging'); // Remove dragging class
+            searchDialog.classList.remove('dblclick-active'); // Remove outline class
+            document.body.classList.remove('no-pointer-events');
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (isDragging) {
+                searchDialog.style.left = `${e.clientX - dragStartX}px`;
+                searchDialog.style.top = `${e.clientY - dragStartY}px`;
+                searchDialog.style.transform = 'none';
+            }
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!searchDialog.contains(e.target) && !e.target.closest('.button') && searchDialog.classList.contains('show')) {
+                // Comment out the line that closes the search dialog when clicking outside
+                // toggleSearch();
+            }
+        });
+
+        document.addEventListener('click', (e) => {
+            const caseButton = document.querySelector('.button-container .button');
+            if (caseButton.contains(e.target)) {
+                caseButton.classList.toggle('active');
+            } else {
+                caseButton.classList.remove('active');
+            }
+        });
+
+        function handleShortcuts(e) {
+            if (e.ctrlKey && e.key === 'f') {
+                e.preventDefault();
+                toggleSearch();
+            }
+        }
+
+        function toggleSearch() {
+            const isHidden = searchDialog.classList.contains('hide') || !searchDialog.classList.contains('show');
+            searchDialog.classList.toggle('show', isHidden);
+            searchDialog.classList.toggle('hide', !isHidden);
+            if (isHidden) {
+                searchInput.focus();
+                const selectedText = editor.value.substring(editor.selectionStart, editor.selectionEnd);
+                if (selectedText) {
+                    searchInput.value = selectedText;
+                    resetSearch();
+                }
+            } else {
+                searchInput.value = '';
+                replaceInput.value = '';
+                resetSearch();
+            }
+        }
+
+        function resetSearch() {
+            lastSearchTerm = searchInput.value;
+            searchResults = findAllMatches();
+            currentMatchIndex = -1;
+            updateMatchInfo();
+            highlightAllMatches();
+        }
+
+        function findAllMatches() {
+            const text = editor.value;
+            const searchTerm = searchInput.value;
+            if (!searchTerm) return [];
+
+            const flags = matchCase.checked ? 'g' : 'gi';
+            const regex = new RegExp(searchTerm, flags);
+            const matches = [];
+            let match;
+
+            while ((match = regex.exec(text)) !== null) {
+                matches.push({
+                    start: match.index,
+                    end: match.index + match[0].length,
+                    text: match[0]
+                });
+            }
+
+            return matches;
+        }
+
+        function findNext() {
+            if (!searchInput.value) return;
+            
+            if (searchInput.value !== lastSearchTerm || searchResults.length === 0) {
+                resetSearch();
+            }
+            
+            if (searchResults.length === 0) return;
+
+            const cursorPosition = editor.selectionEnd;
+            let nextMatch = searchResults.find(match => match.start > cursorPosition);
+
+            if (!nextMatch && searchResults.length > 0) {
+                nextMatch = searchResults[0]; // Wrap to beginning
+            }
+
+            if (nextMatch) {
+                highlightMatch(nextMatch);
+                currentMatchIndex = searchResults.indexOf(nextMatch);
+                updateMatchInfo();
+            }
+        }
+
+        function findPrevious() {
+            if (!searchInput.value) return;
+            
+            if (searchInput.value !== lastSearchTerm || searchResults.length === 0) {
+                resetSearch();
+            }
+            
+            if (searchResults.length === 0) return;
+
+            const cursorPosition = editor.selectionStart;
+            let prevMatch;
+            
+            for (let i = searchResults.length - 1; i >= 0; i--) {
+                if (searchResults[i].start < cursorPosition) {
+                    prevMatch = searchResults[i];
+                    break;
+                }
+            }
+
+            if (!prevMatch && searchResults.length > 0) {
+                prevMatch = searchResults[searchResults.length - 1]; // Wrap to end
+            }
+
+            if (prevMatch) {
+                highlightMatch(prevMatch);
+                currentMatchIndex = searchResults.indexOf(prevMatch);
+                updateMatchInfo();
+            }
+        }
+
+        function highlightMatch(match) {
+            editor.focus();
+            editor.setSelectionRange(match.start, match.end);
+            
+            // Scroll match into view
+            const textBefore = editor.value.substring(0, match.start);
+            const linesBefore = textBefore.split('\n').length;
+            const lineHeight = parseInt(getComputedStyle(editor).lineHeight);
+            editor.scrollTop = (linesBefore - 2) * lineHeight;
+        }
+
+        function highlightAllMatches() {
+            const text = editor.value;
+            const searchTerm = searchInput.value;
+            if (!searchTerm) return;
+
+            const flags = matchCase.checked ? 'g' : 'gi';
+            const regex = new RegExp(searchTerm, flags);
+            const matches = [];
+            let match;
+
+            while ((match = regex.exec(text)) !== null) {
+                matches.push({
+                    start: match.index,
+                    end: match.index + match[0].length,
+                    text: match[0]
+                });
+            }
+
+            const highlightedText = text.split('').map((char, index) => {
+                const isMatch = matches.some(match => index >= match.start && index < match.end);
+                return isMatch ? `<mark class="highlight">${char}</mark>` : char;
+            }).join('');
+
+            const highlightedContainer = document.createElement('div');
+            highlightedContainer.innerHTML = highlightedText;
+            editor.parentNode.replaceChild(highlightedContainer, editor);
+            highlightedContainer.appendChild(editor);
+        }
+
+        function replace() {
+            const searchTerm = searchInput.value;
+            const replaceText = replaceInput.value;
+            if (!searchTerm) return;
+
+            const cursorPosition = editor.selectionStart;
+            const currentSelection = editor.value.substring(editor.selectionStart, editor.selectionEnd);
+            const matchesCurrent = matchCase.checked ? 
+                currentSelection === searchTerm :
+                currentSelection.toLowerCase() === searchTerm.toLowerCase();
+
+            if (matchesCurrent) {
+                const beforeText = editor.value.substring(0, editor.selectionStart);
+                const afterText = editor.value.substring(editor.selectionEnd);
+                editor.value = beforeText + replaceText + afterText;
+                
+                // Maintain cursor position after replacement
+                const newPosition = editor.selectionStart + replaceText.length;
+                editor.setSelectionRange(newPosition, newPosition);
+                
+                updateCounts();
+                resetSearch();
+                findNext();
+            } else {
+                findNext();
+            }
+        }
+
+        function replaceAll() {
+            const searchTerm = searchInput.value;
+            const replaceText = replaceInput.value;
+            if (!searchTerm) return;
+
+            const flags = matchCase.checked ? 'g' : 'gi';
+            const regex = new RegExp(searchTerm, flags);
+            editor.value = editor.value.replace(regex, replaceText);
+            
+            updateCounts();
+            resetSearch();
+        }
+
+        function updateMatchInfo() {
+            if (searchResults.length > 0) {
+                const current = currentMatchIndex >= 0 ? currentMatchIndex + 1 : 0;
+                matchInfo.textContent = `${current} of ${searchResults.length} matches`;
+            } else {
+                matchInfo.textContent = searchInput.value ? 'No matches' : 'No results';
+            }
+        }
+
+        function updateCounts() {
+            const text = editor.value;
+            const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+            wordCount.textContent = `Words: ${words}`;
+            charCount.textContent = `Characters: ${text.length}`;
+        }
+
+        function saveFile() {
+            const filename = prompt('Enter filename:', 'document.txt');
+            if (filename) {
+                const blob = new Blob([editor.value], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = filename;
+                link.click();
+                URL.revokeObjectURL(url);
+            }
+        }
+
+        function clearText() {
+            if (confirm('Clear all text?')) {
+                editor.value = '';
+                updateCounts();
+            }
+        }
+
+        function toggleDarkMode() {
+            document.body.classList.toggle('dark-mode');
+            const icon = document.getElementById('darkModeIcon');
+            if (document.body.classList.contains('dark-mode')) {
+                icon.classList.remove('fa-moon');
+                icon.classList.add('fa-sun');
+            } else {
+                icon.classList.remove('fa-sun');
+                icon.classList.add('fa-moon');
+            }
+        }
+
+        function convertToSentenceCase() {
+            const text = editor.value.toLowerCase();
+            editor.value = text.replace(/(^\s*\w|[.!?]\s*\w)/g, c => c.toUpperCase());
+            updateCounts();
+        }
+
+        function convertToLowerCase() {
+            editor.value = editor.value.toLowerCase();
+            updateCounts();
+        }
+
+        function convertToUpperCase() {
+            editor.value = editor.value.toUpperCase();
+            updateCounts();
+        }
+
+        function convertToCapitalizedCase() {
+            editor.value = editor.value.replace(/\b\w/g, c => c.toUpperCase());
+            updateCounts();
+        }
+    </script>
+</body>
+</html>
